@@ -1,12 +1,14 @@
 from django.urls import path
 
-from .views import games, nodes, notes, posts, projects, spotify
+from .views import games, nodes, notes, photos, posts, projects, spotify
 
 urlpatterns = [
     path("nodes/", nodes.SphereNodeListView.as_view(), name="nodes-list"),
     path("nodes/<int:pk>/", nodes.SphereNodeDetailView.as_view(), name="node-detail"),
     path("stories/", nodes.StoryListView.as_view(), name="stories-list"),
     path("stories/<slug:slug>/", nodes.StoryDetailView.as_view(), name="story-detail"),
+    path("photos/", photos.GalleryPhotoListView.as_view(), name="photos-list"),
+    path("photos/<int:pk>/", photos.GalleryPhotoDetailView.as_view(), name="photo-detail"),
     path("games/", games.CreateListGame.as_view(), name="games"),
     path("games/<int:pk>/", games.GameDetailView.as_view(), name="game-detail"),
     path("games/steam/<int:appid>/", games.fetch_steam_game, name="fetch-steam-game"),
@@ -29,4 +31,5 @@ urlpatterns = [
     path("notes/<int:note_id>/reply/", notes.admin_reply),
     path("notes/<int:note_id>/", notes.delete_note),
 ]
+
 

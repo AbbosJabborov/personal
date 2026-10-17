@@ -1,6 +1,15 @@
 from rest_framework import serializers
 
-from games.models import Game, Note, Post, Project, Review, SphereNode, Story
+from games.models import (
+    Game,
+    GalleryPhoto,
+    Note,
+    Post,
+    Project,
+    Review,
+    SphereNode,
+    Story,
+)
 
 
 class StorySerializer(serializers.ModelSerializer):
@@ -118,3 +127,19 @@ class AdminReplySerializer(serializers.Serializer):
 class NotePositionSerializer(serializers.Serializer):
     position_x = serializers.FloatField()
     position_y = serializers.FloatField()
+
+
+class GalleryPhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GalleryPhoto
+        fields = [
+            "id",
+            "title",
+            "caption",
+            "image",
+            "image_url",
+            "tag",
+            "date_taken",
+            "order",
+            "created_at",
+        ]

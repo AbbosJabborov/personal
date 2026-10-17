@@ -1,13 +1,31 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from games.models import Game, Note, Post, Project, Review, SphereNode, Story
+from games.models import (
+    Game,
+    GalleryPhoto,
+    Note,
+    Post,
+    Project,
+    Review,
+    SphereNode,
+    Story,
+)
 
 # Register your models here.
 admin.site.register(Game)
 admin.site.register(Project)
 admin.site.register(Review)
 admin.site.register(Post)
+
+
+@admin.register(GalleryPhoto)
+class GalleryPhotoAdmin(admin.ModelAdmin):
+    list_display = ["id", "title", "tag", "date_taken", "order", "created_at"]
+    list_filter = ["tag", "created_at"]
+    search_fields = ["title", "caption", "tag"]
+    list_editable = ["order"]
+
 
 
 @admin.register(Story)

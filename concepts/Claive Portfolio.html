@@ -1,0 +1,923 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Claive Portfolio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Silkscreen&display=swap">
+<style>
+/* Layout: one road. A car lives on the whole page (cursor-chased or WASD-driven), wears desire lines into it and disturbs a pixel-dot field behind the content. Bento projects, 3C skills, photo carousel. */
+:root {
+  --bg: #f4f2fb;
+  --surface: #e9e6f6;
+  --fg: #17142e;
+  --muted: #5a5675;
+  --line: #d3cfe8;
+  --accent: #d4560f;
+  --accent2: #5b46d6;
+  --trail: #0b8f6a;
+  --glow: rgba(91, 70, 214, .18);
+  --stamp: #e8590c;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-pixel: "Silkscreen", "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12101f; --surface: #1b1830; --fg: #ece9fb; --muted: #a29db8; --line: #2d2948;
+    --accent: #ff9150; --accent2: #a89bff; --trail: #7ee6c1; --glow: rgba(168, 155, 255, .2); --stamp: #ff8a3d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12101f; --surface: #1b1830; --fg: #ece9fb; --muted: #a29db8; --line: #2d2948;
+  --accent: #ff9150; --accent2: #a89bff; --trail: #7ee6c1; --glow: rgba(168, 155, 255, .2); --stamp: #ff8a3d;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 17px; line-height: 1.6;
+  padding-block: 24px 96px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { position: relative; z-index: 1; max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 96px; }
+a { color: var(--accent2); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible, input:focus-visible, .slides:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.05; }
+.label { font-family: var(--font-pixel); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+p { margin: 0; }
+button { font: inherit; color: inherit; }
+kbd { font-family: var(--font-mono); font-size: 11px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; background: var(--bg); color: var(--fg); }
+
+/* the world: a ground plane seen from a tilted camera. Dot field behind the content; short desire lines and the 3D car over it */
+#field, #lines { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#field { z-index: 0; }
+#lines { z-index: 15; }
+.hud { position: fixed; z-index: 30; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 10px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: var(--muted); transition: opacity .4s; }
+.hud .keys { display: inline-flex; gap: 3px; }
+.hud.gone { opacity: 0; pointer-events: none; }
+.dpad { display: none; position: fixed; z-index: 30; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); grid-template-columns: repeat(3, 48px); grid-template-rows: repeat(2, 48px); gap: 6px; }
+.dpad button { touch-action: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; font-family: var(--font-pixel); font-size: 14px; color: var(--fg); cursor: pointer; }
+.dpad button:active { background: var(--glow); }
+.dpad .w { grid-column: 2; grid-row: 1; } .dpad .a { grid-column: 1; grid-row: 2; } .dpad .s { grid-column: 2; grid-row: 2; } .dpad .d { grid-column: 3; grid-row: 2; }
+@media (pointer: coarse) { .dpad { display: grid; } .hud { display: none; } .hint .desk { display: none; } }
+@media (pointer: fine) { .hint .touch { display: none; } }
+
+/* nav */
+nav { display: flex; flex-wrap: wrap; gap: 10px 22px; justify-content: space-between; align-items: center; }
+nav .mark { font-family: var(--font-display); font-weight: 800; font-size: 22px; }
+nav ul { display: flex; flex-wrap: wrap; gap: 6px 20px; list-style: none; margin: 0; padding: 0; align-items: center; }
+nav a { color: var(--muted); text-decoration: none; font-size: 15px; }
+nav a:hover { color: var(--fg); }
+.kbtn { display: inline-flex; gap: 10px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 14px; color: var(--muted); }
+
+/* hero */
+.hero { position: relative; padding: 72px 0 40px; }
+.hero h1 { font-size: clamp(52px, 12vw, 128px); font-weight: 800; letter-spacing: -.035em; margin: 0 0 16px; line-height: .95; }
+.hero h1 .ch { display: inline-block; transition: transform .25s cubic-bezier(.3, 1.6, .5, 1), color .2s; cursor: default; }
+.hero h1 .ch:hover, .hero h1 .ch.pop { transform: translateY(-.12em) rotate(-6deg); color: var(--accent); }
+.hero .role { font-family: var(--font-display); font-size: clamp(20px, 3vw, 28px); font-weight: 500; color: var(--accent2); }
+.hero .lede { max-width: 54ch; margin-top: 18px; color: var(--muted); font-size: 18px; }
+.hero .row { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; }
+.now { display: inline-flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; padding: 10px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; font-size: 15px; }
+.now b { font-family: var(--font-display); }
+.hint { margin-top: 20px; font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; max-width: 62ch; }
+.mag { display: inline-block; font-family: var(--font-display); font-weight: 700; padding: 12px 20px; border-radius: 999px; background: var(--fg); color: var(--bg); text-decoration: none; transition: transform .15s ease-out; cursor: pointer; border: 0; font-size: 16px; }
+
+/* marquee */
+.marquee { overflow: hidden; border-block: 1px solid var(--line); padding: 14px 0; margin-block: -40px; background: var(--bg); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.marquee .track { display: flex; gap: 36px; width: max-content; font-family: var(--font-display); font-size: 26px; font-weight: 700; white-space: nowrap; }
+.marquee .track span:nth-child(3n+1) { color: var(--accent); }
+.marquee .track span:nth-child(3n+2) { color: var(--accent2); }
+.marquee:hover .track { animation-play-state: paused; }
+
+section { display: flex; flex-direction: column; gap: 28px; scroll-margin-top: 24px; }
+section > header { display: flex; flex-direction: column; gap: 8px; }
+section h2 { font-size: clamp(30px, 5vw, 46px); font-weight: 700; letter-spacing: -.02em; }
+
+/* spotlight: follows the cursor or the car */
+.spot { position: relative; isolation: isolate; }
+.spot::before { content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: -1; pointer-events: none; opacity: 0; transition: opacity .25s;
+  background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), var(--glow), transparent 70%); }
+.spot::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .25s; padding: 1px;
+  background: radial-gradient(180px circle at var(--mx, 50%) var(--my, 50%), var(--accent2), transparent 70%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+.spot:hover::before, .spot:hover::after, .spot.lit::before, .spot.lit::after { opacity: 1; }
+
+/* about */
+.about { display: grid; grid-template-columns: 1.5fr 1fr; gap: 40px; }
+.about > * { min-width: 0; }
+.about p + p { margin-top: 14px; }
+dl.facts { margin: 0; display: grid; align-content: start; border-top: 1px solid var(--line); }
+.facts div { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; text-align: right; font-weight: 500; }
+
+/* experience */
+.job { display: grid; grid-template-columns: 180px 1fr; gap: 12px 40px; padding-top: 24px; border-top: 1px solid var(--line); }
+.job > * { min-width: 0; }
+.job h3 { font-size: 24px; font-weight: 700; }
+.job .org { color: var(--accent2); font-weight: 600; margin-top: 2px; }
+.job ul { margin: 14px 0 0; padding-left: 18px; display: grid; gap: 8px; color: var(--muted); }
+.job ul b { color: var(--fg); font-weight: 600; }
+
+/* 3Cs */
+.cs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; perspective: 900px; }
+.cs > * { min-width: 0; }
+.c { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 22px; display: flex; flex-direction: column; gap: 12px; transition: transform .15s ease-out; transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); }
+.c .big { font-family: var(--font-display); font-size: 64px; font-weight: 800; line-height: .85; color: var(--accent); }
+.c h3 { font-size: 22px; }
+.c p { color: var(--muted); font-size: 15px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 4px; }
+.chip { font-family: var(--font-mono); font-size: 12px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); }
+.tools { display: grid; grid-template-columns: 180px 1fr; gap: 12px 40px; padding-top: 24px; border-top: 1px solid var(--line); }
+.tools > * { min-width: 0; }
+.tools .chips { margin: 0; padding: 0; }
+
+/* projects bento */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.filters button { font-family: var(--font-pixel); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 8px 12px; background: var(--bg); color: var(--muted); border: 1px solid var(--line); border-radius: 4px; cursor: pointer; }
+.filters button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.bento { display: grid; grid-template-columns: repeat(6, 1fr); grid-auto-flow: dense; gap: 14px; }
+.bento > * { min-width: 0; }
+.p { grid-column: span 2; border: 1px solid var(--line); border-radius: 8px; padding: 22px; display: flex; flex-direction: column; gap: 10px; background: var(--surface); }
+.p.w3 { grid-column: span 3; }
+.p.w6 { grid-column: span 6; }
+.p.feature { grid-column: span 4; grid-row: span 2; min-height: 360px; overflow: hidden; }
+.p h3 { font-size: 24px; font-weight: 700; }
+.p.feature h3 { font-size: clamp(34px, 5vw, 52px); }
+.p p { color: var(--muted); font-size: 15.5px; }
+.p .meta { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; }
+.status { font-family: var(--font-pixel); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 3px; border: 1px solid var(--trail); color: var(--trail); }
+.status.hi { border-color: var(--accent); color: var(--accent); }
+.status.mute { border-color: var(--line); color: var(--muted); }
+.p[hidden] { display: none; }
+.road { position: relative; margin-top: auto; height: 130px; margin-inline: -22px; margin-bottom: -22px; perspective: 260px; overflow: hidden; }
+.road::before { content: ""; position: absolute; left: -10%; right: -10%; top: 0; bottom: -40%; transform-origin: 50% 0; transform: rotateX(62deg);
+  background: repeating-linear-gradient(0deg, transparent 0 28px, var(--accent) 28px 56px) center / 8px 100% no-repeat, linear-gradient(var(--bg), var(--line));
+  animation: drive 0.7s linear infinite; background-position: center 0, 0 0; }
+@keyframes drive { to { background-position: center 56px, 0 0; } }
+
+/* photo carousel */
+.photo-intro { display: grid; gap: 12px; max-width: 62ch; }
+.specs { display: flex; flex-wrap: wrap; gap: 6px; }
+.cwrap { display: grid; gap: 16px; }
+.slides { --sw: min(560px, 78vw); position: relative; display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; padding-block: 8px; scrollbar-width: none; cursor: grab; }
+.slides::before, .slides::after { content: ""; flex: 0 0 calc((100% - var(--sw)) / 2 - 16px); }
+.slides::-webkit-scrollbar { display: none; }
+.slides.drag { cursor: grabbing; user-select: none; }
+.slide { flex: 0 0 var(--sw); scroll-snap-align: center; display: grid; gap: 10px; opacity: .5; transform: scale(.94); transition: transform .3s, opacity .3s; }
+.slide.on { opacity: 1; transform: none; }
+.ph { position: relative; aspect-ratio: 4 / 3; border-radius: 6px; border: 1px solid var(--line); background: linear-gradient(calc(var(--r) * 1deg), var(--surface), var(--glow)) center / cover no-repeat; overflow: hidden; }
+.ph .fn { position: absolute; left: 12px; top: 10px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.ph .add { position: absolute; left: 10px; bottom: 10px; font-family: var(--font-mono); font-size: 11px; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; cursor: pointer; color: var(--fg); overflow: hidden; }
+.ph .add input { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+.ph .stamp { position: absolute; right: 12px; bottom: 10px; font-family: var(--font-mono); font-weight: 500; font-size: 14px; color: var(--stamp); text-shadow: 0 0 4px rgba(0, 0, 0, .4); }
+.ph.has .fn { color: #fff; text-shadow: 0 0 4px rgba(0, 0, 0, .5); }
+.slide figcaption { font-size: 14px; color: var(--muted); }
+.cbar { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; justify-content: center; }
+.cbtn { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-size: 18px; }
+.cbtn:hover { background: var(--glow); }
+.cdots { display: flex; gap: 6px; align-items: center; }
+.cdots button { width: 8px; height: 8px; border-radius: 50%; border: 0; background: var(--line); padding: 0; cursor: pointer; transition: width .2s, background .2s; }
+.cdots button[aria-current="true"] { width: 22px; border-radius: 4px; background: var(--accent); }
+
+.events { display: grid; }
+.ev { display: grid; grid-template-columns: 180px 1fr; gap: 6px 40px; padding: 18px 0; border-top: 1px solid var(--line); }
+.ev > * { min-width: 0; }
+.ev h3 { font-size: 20px; }
+.ev p { color: var(--muted); font-size: 15.5px; margin-top: 4px; }
+
+.contact { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: clamp(24px, 5vw, 52px); display: grid; gap: 18px; justify-items: start; }
+.contact h2 { font-size: clamp(34px, 6vw, 64px); }
+footer { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+
+/* command palette */
+.pal { position: fixed; inset: 0; background: rgba(10, 8, 20, .55); z-index: 50; display: grid; justify-items: center; align-content: start; padding: 14vh 16px 0; }
+.pal[hidden] { display: none; }
+.pal .box { width: min(520px, 100%); background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; box-shadow: 0 24px 60px rgba(0, 0, 0, .35); }
+.pal input { width: 100%; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--fg); font: inherit; font-size: 17px; padding: 16px 18px; outline: none; }
+.pal ul { list-style: none; margin: 0; padding: 6px; max-height: 50vh; overflow: auto; }
+.pal li button { display: flex; justify-content: space-between; gap: 12px; width: 100%; text-align: left; background: transparent; border: 0; border-radius: 6px; padding: 10px 12px; cursor: pointer; font-size: 15px; }
+.pal li button[aria-selected="true"] { background: var(--glow); }
+.pal li small { color: var(--muted); font-family: var(--font-mono); font-size: 12px; }
+
+@media (max-width: 760px) {
+  .about, .cs { grid-template-columns: 1fr; }
+  .job, .tools, .ev { grid-template-columns: 1fr; }
+  .wrap { gap: 72px; }
+  .bento { grid-template-columns: 1fr; }
+  .p, .p.w3, .p.w6, .p.feature { grid-column: auto; grid-row: auto; }
+  .kbtn .t { display: none; }
+  .hero { padding-top: 48px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .marquee .track { animation: scroll 38s linear infinite; }
+  @keyframes scroll { to { transform: translateX(-50%); } }
+}
+@media (prefers-reduced-motion: reduce) {
+  .road::before { animation: none; }
+  .marquee .track { flex-wrap: wrap; width: auto; justify-content: center; }
+  .slide { transition: none; }
+}
+</style>
+
+<canvas id="field" aria-hidden="true"></canvas>
+<canvas id="lines" aria-hidden="true"></canvas>
+
+<div class="wrap">
+  <nav>
+    <span class="mark">Claive</span>
+    <ul>
+      <li><a href="#about">About</a></li>
+      <li><a href="#experience">Experience</a></li>
+      <li><a href="#skills">Skills</a></li>
+      <li><a href="#projects">Projects</a></li>
+      <li><a href="#photos">Photos</a></li>
+      <li><button type="button" class="kbtn" id="open-pal" aria-label="Open command menu"><span class="t">Jump to</span><kbd>Ctrl K</kbd></button></li>
+    </ul>
+  </nav>
+
+  <header class="hero" id="hero">
+    <h1 id="name" aria-label="Abbos Jabborov"></h1>
+    <p class="role">Unity developer and 3C game designer</p>
+    <p class="lede">I build the way a game feels in the hands: how the character moves, where the camera sits, and what the controls give back. Co-founder of Tonto Studio.</p>
+    <div class="row">
+      <a class="mag" href="#projects">See the work</a>
+      <div class="now"><span class="label">Now shipping</span><span><b>Desire Lines</b>, Steam, Q4 2026</span></div>
+    </div>
+    <p class="hint">
+      <span class="desk">Drive the car with</span>
+      <span class="desk"><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></span>
+      <span class="desk">or let it chase your cursor. Drive down and the page scrolls with you.</span>
+      <span class="touch">Use the pad at the bottom right to drive the car. Drive down and the page scrolls with you.</span>
+    </p>
+  </header>
+
+  <div class="marquee" aria-hidden="true"><div class="track" id="track"></div></div>
+
+  <section id="about">
+    <header><span class="label">About</span><h2>Programmer who designs, designer who programs</h2></header>
+    <div class="about">
+      <div>
+        <p>I work across gameplay programming, game design and the business side of an indie studio. Most days that means writing movement and vehicle code in Unity, then playtesting it until it feels right.</p>
+        <p>I like cozy, warm and minimal design, and I lean on shaders to give small projects a strong look: outlines, CRT screens, acrylic paint and watercolor styles. I also enjoy game jams, where a three-day limit forces the core idea to show up fast. Away from the screen I take pictures with a Canon PowerShot A430.</p>
+      </div>
+      <dl class="facts">
+        <div><dt>Goes by</dt><dd>Claive</dd></div>
+        <div><dt>Based in</dt><dd>Tashkent, UZ</dd></div>
+        <div><dt>Studio</dt><dd>Tonto Studio</dd></div>
+        <div><dt>Main engine</dt><dd>Unity</dd></div>
+        <div><dt>Also uses</dt><dd>Godot, Web</dd></div>
+        <div><dt>Camera</dt><dd>Canon A430</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section id="experience">
+    <header><span class="label">Experience</span><h2>Where I work</h2></header>
+    <div class="job">
+      <div class="label">Tonto Studio<br>Tashkent</div>
+      <div>
+        <h3>Co-founder, gameplay programmer and designer</h3>
+        <p class="org">Indie game studio</p>
+        <ul>
+          <li><b>Desire Lines</b>, the studio's primary PC release, headed to Steam.</li>
+          <li><b>Gameplay programming</b> in Unity: vehicle physics, movement systems, shaders and tools.</li>
+          <li><b>Game design</b>: led ideation sessions on co-op games, a polaroid camera mechanic and a co-op drawing concept.</li>
+          <li><b>Studio operations</b>: built the studio website and prepared an IT Park Uzbekistan residency inquiry.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="job">
+      <div class="label">Jams and hackathons</div>
+      <div>
+        <h3>Competition teams</h3>
+        <p class="org">Gamefest, 35 LVL, AI Xakaton</p>
+        <ul>
+          <li>Received a <b>Best Game Design nomination</b> at Gamefest with team All Hail Uncle Bao.</li>
+          <li>Programmer on a two-person team for the <b>35 LVL</b> jam, built in 3 days.</li>
+          <li>Took part in the <b>Umummilliy AI Xakaton</b> in Qashqadaryo, in a team of five.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="skills">
+    <header><span class="label">What I know</span><h2>The three Cs</h2></header>
+    <div class="cs">
+      <article class="c spot tilt">
+        <div class="big">C</div>
+        <h3>Character</h3>
+        <p>Gameplay systems and the things that act in them: NPC and chaser AI, combo and upgrade loops, state and lifecycle logic.</p>
+        <div class="chips"><span class="chip">C#</span><span class="chip">Unity 6</span><span class="chip">AI</span><span class="chip">Netcode</span></div>
+      </article>
+      <article class="c spot tilt">
+        <div class="big">C</div>
+        <h3>Camera</h3>
+        <p>Framing and look. Cinemachine rigs, a custom 3D perspective renderer, and shaders that carry the art style.</p>
+        <div class="chips"><span class="chip">Cinemachine</span><span class="chip">HLSL</span><span class="chip">Shader Graph</span><span class="chip">URP</span></div>
+      </article>
+      <article class="c spot tilt">
+        <div class="big">C</div>
+        <h3>Controls</h3>
+        <p>Movement and input that feel good: grappling hook momentum, surf movement, manual gearboxes, gamepad and gyro input.</p>
+        <div class="chips"><span class="chip">Raycast physics</span><span class="chip">Gamepad input</span><span class="chip">DualSense</span></div>
+      </article>
+    </div>
+    <div class="tools">
+      <div class="label">Toolbox</div>
+      <div class="chips">
+        <span class="chip">Unity</span><span class="chip">Godot</span><span class="chip">HTML5 Canvas</span><span class="chip">Post-processing</span>
+        <span class="chip">React</span><span class="chip">Vite</span><span class="chip">Tailwind</span><span class="chip">Framer Motion</span>
+        <span class="chip">Django REST</span><span class="chip">PostgreSQL</span><span class="chip">JWT</span><span class="chip">SQLite</span>
+        <span class="chip">Go</span><span class="chip">Cloudflare</span><span class="chip">Linux</span><span class="chip">Unity MCP</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="projects">
+    <header><span class="label">Projects</span><h2>Selected work</h2></header>
+    <div class="filters" role="group" aria-label="Filter projects">
+      <button type="button" aria-pressed="true" data-f="all">All</button>
+      <button type="button" aria-pressed="false" data-f="game">Games</button>
+      <button type="button" aria-pressed="false" data-f="web">Web</button>
+      <button type="button" aria-pressed="false" data-f="tool">Tools</button>
+    </div>
+    <div class="bento" id="grid">
+      <article class="p feature spot" data-t="game">
+        <div class="meta"><span class="label">Tonto Studio · Unity · PC</span><span class="status hi">Steam, Q4 2026</span></div>
+        <h3>Desire Lines</h3>
+        <p>A PSX-style driving roguelite and Tonto Studio's primary PC release, coming to Steam.</p>
+        <div class="road" aria-hidden="true"></div>
+      </article>
+      <article class="p spot" data-t="web">
+        <div class="meta"><span class="label">React · Django</span><span class="status">Completed</span></div>
+        <h3>Zakovat Live</h3>
+        <p>A real-time party quiz. Players type free-text answers and see each other's guesses live.</p>
+      </article>
+      <article class="p spot" data-t="game">
+        <div class="meta"><span class="label">Unity · Jam</span><span class="status mute">3 days</span></div>
+        <h3>35 LVL entry</h3>
+        <p>A jam game on "Independence Mechanic", built on shaders instead of custom art.</p>
+      </article>
+      <article class="p w3 spot" data-t="web">
+        <div class="meta"><span class="label">AI · Hackathon</span><span class="status mute">Hackathon</span></div>
+        <h3>Shadow Economy Radar</h3>
+        <p>An AI monitoring platform that flags informal economy activity, built in three days with mock data for Umummilliy AI Xakaton.</p>
+      </article>
+      <article class="p w3 spot" data-t="game">
+        <div class="meta"><span class="label">Unity · Physics</span><span class="status mute">Prototype</span></div>
+        <h3>Arcade car chase</h3>
+        <p>A top-down chase game in Unity 6 with sphere-based physics and AI chasers, plus a manual transmission built on raycasts.</p>
+      </article>
+      <article class="p spot" data-t="game">
+        <div class="meta"><span class="label">Canvas</span><span class="status mute">Prototype</span></div>
+        <h3>Arena shooter</h3>
+        <p>A custom 3D renderer in HTML5 Canvas with grappling hook physics that keeps momentum.</p>
+      </article>
+      <article class="p spot" data-t="game">
+        <div class="meta"><span class="label">Unity · Netcode</span><span class="status mute">Feature</span></div>
+        <h3>Trivia duel mode</h3>
+        <p>Multiplayer duels for a mobile trivia game: lobbies, turn-based matching and speed-based scoring.</p>
+      </article>
+      <article class="p spot" data-t="game">
+        <div class="meta"><span class="label">HTML · Single file</span><span class="status mute">Prototype</span></div>
+        <h3>Pixel Chefs</h3>
+        <p>A pixel art cooking time-management game with combos, burn timers and upgrade choices.</p>
+      </article>
+      <article class="p w3 spot" data-t="tool">
+        <div class="meta"><span class="label">Go · SQLite · Cloud GPU</span><span class="status mute">In progress</span></div>
+        <h3>CS2 highlight generator</h3>
+        <p>A local clip generator for CS2 demo files. Parsing, queue and web UI run locally and rendering goes to a cloud GPU.</p>
+      </article>
+      <article class="p w3 spot" data-t="web">
+        <div class="meta"><span class="label">Django REST · JWT</span><span class="status mute">Backend done</span></div>
+        <h3>ShelfChef</h3>
+        <p>A recipe and pantry API with JWT auth and recipe matching against what you already have at home.</p>
+      </article>
+      <article class="p w6 spot" data-t="web">
+        <div class="meta"><span class="label">Web · TikTok-style UI</span><span class="status mute">Planning</span></div>
+        <h3>Scrolls</h3>
+        <p>A reel-style site for scrolling through famous artworks, with the artist's profile, follow button and short descriptions beside each piece.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="photos">
+    <header><span class="label">Off duty</span><h2>Shot on a Canon A430</h2></header>
+    <div class="photo-intro">
+      <p>I take pictures on a Canon PowerShot A430, a compact point-and-shoot. These are the frames I keep, each with the orange date stamp the camera prints.</p>
+      <div class="specs"><span class="chip">4.0 MP</span><span class="chip">3.6× zoom</span><span class="chip">AA batteries</span></div>
+    </div>
+    <div class="cwrap" role="group" aria-roledescription="carousel" aria-label="Photos from the Canon A430">
+      <div class="slides" id="slides" tabindex="0" aria-label="Photo slides. Use the left and right arrow keys."></div>
+      <div class="cbar">
+        <button type="button" class="cbtn" id="prev" aria-label="Previous photo">&larr;</button>
+        <span class="label" id="cnt">01 / 08</span>
+        <div class="cdots" id="cdots"></div>
+        <button type="button" class="cbtn" id="next" aria-label="Next photo">&rarr;</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="events">
+    <header><span class="label">Recognition</span><h2>Jams and events</h2></header>
+    <div class="events">
+      <div class="ev"><div class="label">Gamefest 26</div><div><h3>Best Game Design nomination</h3><p>Team All Hail Uncle Bao. I also wrote a post-jam reflection on what worked.</p></div></div>
+      <div class="ev"><div class="label">35 LVL</div><div><h3>Independence Mechanic jam</h3><p>Three days, a team of two, and a shader-first look that avoided heavy art work.</p></div></div>
+      <div class="ev"><div class="label">Qashqadaryo 2026</div><div><h3>Umummilliy AI Xakaton</h3><p>Four coders and one designer on topic 21, detecting shadow economy activity with AI.</p></div></div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="contact">
+      <span class="label">Contact</span>
+      <h2>Let's make something that feels good to play.</h2>
+      <p>Tonto Studio, Tashkent, Uzbekistan.</p>
+    </div>
+  </section>
+
+  <footer>
+    <span class="label">Claive · Abbos Jabborov</span>
+    <span class="label">Tonto Studio · Tashkent</span>
+  </footer>
+</div>
+
+<div class="hud" id="hud"><span class="keys"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>drive the car</span></div>
+<div class="dpad" id="dpad" aria-label="Drive controls">
+  <button type="button" class="w" data-k="w" aria-label="Forward">W</button>
+  <button type="button" class="a" data-k="a" aria-label="Steer left">A</button>
+  <button type="button" class="s" data-k="s" aria-label="Brake or reverse">S</button>
+  <button type="button" class="d" data-k="d" aria-label="Steer right">D</button>
+</div>
+
+<div class="pal" id="pal" hidden role="dialog" aria-modal="true" aria-label="Command menu">
+  <div class="box">
+    <input id="pal-q" type="text" placeholder="Jump to a section or action" autocomplete="off" aria-label="Search commands">
+    <ul id="pal-list"></ul>
+  </div>
+</div>
+
+<script>
+(function () {
+  var mq = function (q) { return !!(window.matchMedia && window.matchMedia(q).matches); };
+  var reduce = mq('(prefers-reduced-motion: reduce)');
+  var root = document.documentElement;
+  var $ = function (id) { return document.getElementById(id); };
+  var clamp = function (n, lo, hi) { return Math.max(lo, Math.min(hi, n)); };
+  var pal = $('pal');
+
+  // Hero name: letters hop on hover, and when the car drives past
+  var name = $('name');
+  ['Abbos', 'Jabborov'].forEach(function (w, i) {
+    if (i) name.appendChild(document.createElement('br'));
+    w.split('').forEach(function (c) {
+      var s = document.createElement('span');
+      s.className = 'ch'; s.textContent = c; s.setAttribute('aria-hidden', 'true');
+      name.appendChild(s);
+    });
+  });
+  var letters = [].slice.call(document.querySelectorAll('.ch'));
+
+  // Marquee
+  var words = ['Unity', 'C#', 'Gameplay', 'Shaders', 'Game design', 'Cinemachine', 'Django', 'React', 'Netcode', 'HLSL', 'Game jams', 'Photography'];
+  var html = words.map(function (w) { return '<span>' + w + '</span>'; }).join('');
+  $('track').innerHTML = html + html;
+
+  // ---------- The car and the ground, seen from a tilted camera ----------
+  var back = $('field'), front = $('lines'), bctx = back.getContext('2d'), fctx = front.getContext('2d');
+  var W = 0, H = 0, GAP = 30, RO = 40, cols = 0, off = 0, hc = 0, heat = new Float32Array(0);
+  var hotX = new Float32Array(1500), hotZ = new Float32Array(1500), hotH = new Float32Array(1500);
+  var TILT = 36 * Math.PI / 180, ST = Math.sin(TILT), CT = Math.cos(TILT);
+  var FL = 1000, CX = 0, CY = 0, CZ = 0, PX = 0, PY = 0, PS = 1, PD = 1, GX = 0, GZ = 0;
+  var LX = -0.46, LY = 0.82, LZ = 0.34, KS = 1.4;
+
+  function fitHeat() {
+    var rows = Math.ceil(Math.max(root.scrollHeight, H) / GAP) + RO + 40;
+    if (rows * hc !== heat.length) heat = new Float32Array(rows * hc);
+  }
+  function fit() {
+    var d = Math.min(2, window.devicePixelRatio || 1);
+    W = window.innerWidth; H = window.innerHeight;
+    [back, front].forEach(function (c) { c.width = Math.round(W * d); c.height = Math.round(H * d); });
+    bctx.setTransform(d, 0, 0, d, 0, 0); fctx.setTransform(d, 0, 0, d, 0, 0);
+    cols = Math.ceil(W / GAP); off = cols + 2; hc = cols * 3 + 6;
+    FL = 1.5 * Math.max(H, 600);
+    fitHeat();
+  }
+  fit();
+  window.addEventListener('resize', fit);
+  if (window.ResizeObserver) new ResizeObserver(fitHeat).observe(document.body);
+
+  // camera looks at the middle of the viewport, tilted back by TILT; ground units are page pixels
+  function camera(sy) { CX = W / 2; CY = FL * CT; CZ = sy + H / 2 + FL * ST; }
+  function pr(wx, wy, wz) {
+    var vy = wy - CY, vz = wz - CZ, depth = -vy * CT - vz * ST, yc = vy * ST - vz * CT;
+    PD = depth; PS = FL / depth; PX = W / 2 + (wx - CX) * PS; PY = H / 2 - yc * PS;
+  }
+  function unproject(sx, sy_) {
+    var dxc = (sx - W / 2) / FL, dyc = -(sy_ - H / 2) / FL;
+    var dirY = ST * dyc - CT, dirZ = -CT * dyc - ST;
+    if (dirY > -0.05) dirY = -0.05;
+    var t = -CY / dirY;
+    GX = CX + t * dxc; GZ = CZ + t * dirZ;
+  }
+
+  var ptr = { x: W * 0.7, y: H * 0.35 }, prevSy = window.scrollY;
+  camera(prevSy); unproject(ptr.x, ptr.y);
+  var x = GX, z = GZ, a = Math.PI, v = 0;
+  var mode = 'follow', lastKey = -1e9, lastPtr = -1e9;
+  var keys = { w: 0, a: 0, s: 0, d: 0 };
+  var trail = [], last = null, LIFE = 1800, MAXT = 120;
+  var cAcc = '#5b46d6', cTrail = '#0b8f6a', cMuted = '#5a5675', cBody = [212, 86, 15];
+  var frames = 0, prevT = performance.now(), ccs = 1, csn = 0;
+  var spots = [].slice.call(document.querySelectorAll('.spot'));
+  var hud = $('hud');
+  var GLASS = [38, 34, 64], TYRE = [26, 23, 38];
+
+  function rgb(c) {
+    var m = /^#([0-9a-f]{6})$/i.exec(c);
+    if (m) return [parseInt(m[1].slice(0, 2), 16), parseInt(m[1].slice(2, 4), 16), parseInt(m[1].slice(4, 6), 16)];
+    m = /rgba?\((\d+)[ ,]+(\d+)[ ,]+(\d+)/.exec(c);
+    return m ? [+m[1], +m[2], +m[3]] : [212, 86, 15];
+  }
+  function shade(c, f) { return 'rgb(' + Math.round(Math.min(255, c[0] * f)) + ',' + Math.round(Math.min(255, c[1] * f)) + ',' + Math.round(Math.min(255, c[2] * f)) + ')'; }
+  function colors() {
+    var st = getComputedStyle(root);
+    cAcc = st.getPropertyValue('--accent2').trim() || cAcc;
+    cTrail = st.getPropertyValue('--trail').trim() || cTrail;
+    cMuted = st.getPropertyValue('--muted').trim() || cMuted;
+    cBody = rgb(st.getPropertyValue('--accent').trim());
+  }
+  colors();
+
+  // one box of the car, in car-local coordinates (forward, sideways, up); only faces turned to the camera are drawn
+  function drawBox(x0, x1, y0, y1, h0, h1, topC, sideC, emis) {
+    var F = [
+      [1, 0, 0, [[x1, y0, h0], [x1, y1, h0], [x1, y1, h1], [x1, y0, h1]]],
+      [-1, 0, 0, [[x0, y1, h0], [x0, y0, h0], [x0, y0, h1], [x0, y1, h1]]],
+      [0, 1, 0, [[x1, y1, h0], [x0, y1, h0], [x0, y1, h1], [x1, y1, h1]]],
+      [0, -1, 0, [[x0, y0, h0], [x1, y0, h0], [x1, y0, h1], [x0, y0, h1]]],
+      [0, 0, 1, [[x0, y0, h1], [x1, y0, h1], [x1, y1, h1], [x0, y1, h1]]]
+    ];
+    for (var i = 0; i < F.length; i++) {
+      var f = F[i], P = f[3], sxs = [], sys = [], mx = 0, my = 0, mz = 0;
+      for (var n = 0; n < 4; n++) {
+        var wx = x + (ccs * P[n][0] - csn * P[n][1]) * KS, wz = z + (csn * P[n][0] + ccs * P[n][1]) * KS, wy = P[n][2] * KS;
+        mx += wx; my += wy; mz += wz;
+        pr(wx, wy, wz); sxs.push(PX); sys.push(PY);
+      }
+      mx /= 4; my /= 4; mz /= 4;
+      var nx = ccs * f[0] - csn * f[1], nz = csn * f[0] + ccs * f[1], ny = f[2];
+      if (nx * (CX - mx) + ny * (CY - my) + nz * (CZ - mz) <= 0) continue;
+      if (emis) fctx.fillStyle = sideC;
+      else fctx.fillStyle = shade(f[2] ? topC : sideC, (0.5 + 0.5 * Math.max(0, nx * LX + ny * LY + nz * LZ)) * 1.05);
+      fctx.beginPath(); fctx.moveTo(sxs[0], sys[0]);
+      fctx.lineTo(sxs[1], sys[1]); fctx.lineTo(sxs[2], sys[2]); fctx.lineTo(sxs[3], sys[3]);
+      fctx.closePath(); fctx.fill(); fctx.stroke();
+    }
+  }
+  function groundQuad(pts, dx, dz) {
+    fctx.beginPath();
+    for (var i = 0; i < pts.length; i++) {
+      pr(x + (ccs * pts[i][0] - csn * pts[i][1]) * KS + dx, 0, z + (csn * pts[i][0] + ccs * pts[i][1]) * KS + dz);
+      if (i) fctx.lineTo(PX, PY); else fctx.moveTo(PX, PY);
+    }
+    fctx.closePath(); fctx.fill();
+  }
+  function drawCar() {
+    ccs = Math.cos(a); csn = Math.sin(a);
+    fctx.globalAlpha = 1;
+    fctx.fillStyle = 'rgba(255, 229, 138, 0.13)';
+    groundQuad([[23, -7], [23, 7], [115, 28], [115, -28]], 0, 0);
+    fctx.fillStyle = 'rgba(0, 0, 0, 0.26)';
+    groundQuad([[-26, -14], [26, -14], [26, 14], [-26, 14]], 4, 5);
+    fctx.lineWidth = 1; fctx.lineJoin = 'round'; fctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+    pr(x, 8 * KS, z);
+    var dC = PD, near = [];
+    [[-14, -1], [-14, 1], [14, -1], [14, 1]].forEach(function (w) {
+      var lx = w[0], ly = w[1] * 12.5;
+      pr(x + (ccs * lx - csn * ly) * KS, 4 * KS, z + (csn * lx + ccs * ly) * KS);
+      var box = [lx - 5.5, lx + 5.5, w[1] > 0 ? 10 : -15, w[1] > 0 ? 15 : -10, 0, 9];
+      if (PD > dC) drawBox(box[0], box[1], box[2], box[3], box[4], box[5], TYRE, TYRE, false);
+      else near.push(box);
+    });
+    drawBox(-22, 22, -11, 11, 4, 14, cBody, cBody, false);
+    drawBox(22, 23.5, -9, -4, 7, 11, null, '#ffe58a', true);
+    drawBox(22, 23.5, 4, 9, 7, 11, null, '#ffe58a', true);
+    drawBox(-23.5, -22, -9.5, -5, 7, 10, null, '#ff4b4b', true);
+    drawBox(-23.5, -22, 5, 9.5, 7, 10, null, '#ff4b4b', true);
+    drawBox(-10, 10, -8.5, 8.5, 14, 23, [cBody[0] * 0.85, cBody[1] * 0.85, cBody[2] * 0.85], GLASS, false);
+    near.forEach(function (b) { drawBox(b[0], b[1], b[2], b[3], b[4], b[5], TYRE, TYRE, false); });
+  }
+
+  function step(ts) {
+    requestAnimationFrame(step);
+    var dt = Math.min(48, ts - prevT); prevT = ts;
+    if (document.hidden) return;
+    var k = dt / 16.667, sy = window.scrollY;
+    if (frames++ % 40 === 0) colors();
+    camera(sy);
+    z += sy - prevSy; prevSy = sy;   // a wheel scroll carries the car along with the screen
+
+    // control
+    if (mode === 'manual') {
+      var thr = keys.w - keys.s, steer = keys.d - keys.a;
+      if (thr > 0) v += 0.16 * k;
+      else if (thr < 0) v -= (v > 0 ? 0.3 : 0.1) * k;
+      else v *= Math.pow(0.97, k);
+      v = clamp(v, -2.8, 7.5);
+      a += steer * 0.05 * k * clamp(v / 3, -1, 1);
+    } else {
+      var tsx = ptr.x, tsy = ptr.y;
+      if (!reduce && ts - lastPtr > 3500) {
+        tsx = W / 2 + Math.cos(ts * 0.0004) * W * 0.36;
+        tsy = H / 2 + Math.sin(ts * 0.0007) * H * 0.3;
+      }
+      unproject(tsx, tsy);
+      var dx = GX - x, dz = GZ - z, dist = Math.hypot(dx, dz);
+      var da = Math.atan2(dz, dx) - a; da = Math.atan2(Math.sin(da), Math.cos(da));
+      a += clamp(da, -0.07 * k, 0.07 * k);
+      v += (Math.min(dist * 0.06, 5.5) - v) * Math.min(1, 0.1 * k);
+    }
+    x += Math.cos(a) * v * k; z += Math.sin(a) * v * k;
+
+    // driving toward the bottom or top edge scrolls the page
+    if (mode === 'manual' && Math.abs(v) > 0.3) {
+      var zone = Math.min(170, H * 0.28), b0 = window.scrollY, maxS = root.scrollHeight - H, vz = Math.sin(a) * v;
+      pr(x, 0, z);
+      var scy = PY, scl = PS;
+      if (vz > 0 && scy > H - zone && b0 < maxS - 1) window.scrollBy({ top: (scy - (H - zone)) / scl * 0.5, left: 0, behavior: 'instant' });
+      else if (vz < 0 && scy < zone && b0 > 0) window.scrollBy({ top: (scy - zone) / scl * 0.5, left: 0, behavior: 'instant' });
+      sy = window.scrollY; prevSy = sy; camera(sy);
+    }
+    // keep the car on screen
+    var mg = 16;
+    unproject(W / 2, mg); var zt = GZ; unproject(W / 2, H - mg); var zb = GZ;
+    var nz = clamp(z, zt, zb), hw = (W / 2 - mg) / (FL / (CY * CT - (nz - CZ) * ST));
+    var nx = clamp(x, CX - hw, CX + hw);
+    if (nx !== x || nz !== z) v *= 0.92;
+    x = nx; z = nz;
+
+    // short desire lines, stored in page coordinates so they stay with the content
+    var cs = Math.cos(a), sn = Math.sin(a);
+    if (Math.abs(v) > 0.4) {
+      if (!last || Math.hypot(x - last.x, z - last.z) > 4) {
+        trail.push({
+          t: ts, cx: x - cs * 14 * KS, cz: z - sn * 14 * KS,
+          lx: x - (cs * 14 - sn * 12.5) * KS, lz: z - (sn * 14 + cs * 12.5) * KS,
+          rx: x - (cs * 14 + sn * 12.5) * KS, rz: z - (sn * 14 - cs * 12.5) * KS, s: !last
+        });
+        last = { x: x, z: z };
+      }
+    } else last = null;
+    while (trail.length && ts - trail[0].t > LIFE) trail.shift();
+    if (trail.length > MAXT) trail.splice(0, trail.length - MAXT);
+
+    fctx.clearRect(0, 0, W, H);
+    fctx.lineCap = 'round'; fctx.strokeStyle = cTrail;
+    for (var i = 1; i < trail.length; i++) {
+      var p = trail[i], q = trail[i - 1];
+      if (p.s) continue;
+      var al = 1 - (ts - p.t) / LIFE;
+      pr(q.cx, 0, q.cz); var ax = PX, ay = PY;
+      pr(p.cx, 0, p.cz); var bx = PX, by = PY, ps = PS;
+      if ((ay < -30 && by < -30) || (ay > H + 30 && by > H + 30)) continue;
+      fctx.globalAlpha = 0.14 * al; fctx.lineWidth = 24 * ps;
+      fctx.beginPath(); fctx.moveTo(ax, ay); fctx.lineTo(bx, by); fctx.stroke();
+      fctx.globalAlpha = 0.75 * al; fctx.lineWidth = 2.4 * ps;
+      fctx.beginPath();
+      pr(q.lx, 0, q.lz); fctx.moveTo(PX, PY); pr(p.lx, 0, p.lz); fctx.lineTo(PX, PY);
+      pr(q.rx, 0, q.rz); fctx.moveTo(PX, PY); pr(p.rx, 0, p.rz); fctx.lineTo(PX, PY);
+      fctx.stroke();
+    }
+    fctx.globalAlpha = 1;
+
+    // dot field on the ground: pushed away and lifted near the car, glow lingers behind it
+    bctx.clearRect(0, 0, W, H);
+    unproject(W / 2, -40); var zTop = GZ; unproject(W / 2, H + 40); var zBot = GZ;
+    var R = 90 + Math.abs(v) * 9, R2 = R * R, nh = 0;
+    var r0 = Math.max(-RO, Math.floor(zTop / GAP) - 1), r1 = Math.ceil(zBot / GAP) + 1;
+    bctx.fillStyle = cMuted;
+    for (var r = r0; r <= r1; r++) {
+      var gz = r * GAP, rvz = gz - CZ, dep = CY * CT - rvz * ST;
+      if (dep < 80) continue;
+      var rs = FL / dep, rowY = H / 2 - (-CY * ST - rvz * CT) * rs;
+      if (rowY < -30 || rowY > H + 50) continue;
+      var base = (r + RO) * hc;
+      if (base + hc > heat.length) break;
+      var c0 = Math.max(0, Math.floor((CX + (-30 - W / 2) / rs) / GAP) + off);
+      var c1 = Math.min(hc - 1, Math.ceil((CX + (W + 30 - W / 2) / rs) / GAP) + off);
+      bctx.globalAlpha = 0.3 * clamp(rs, 0.35, 1.2);
+      var dsz = Math.max(1.4, 2 * rs);
+      for (var c = c0; c <= c1; c++) {
+        var gx = (c - off) * GAP, idx = base + c, h = heat[idx] * 0.955;
+        var ddx = gx - x, ddz = gz - z, d2 = ddx * ddx + ddz * ddz, hx = gx, hz = gz;
+        if (d2 < R2) {
+          var dd = Math.sqrt(d2) || 1, f = 1 - dd / R;
+          if (f > h) h = f;
+          var push = f * f * 16; hx += ddx / dd * push; hz += ddz / dd * push;
+        }
+        if (h < 0.03) { heat[idx] = 0; bctx.fillRect(W / 2 + (gx - CX) * rs - dsz / 2, rowY - dsz / 2, dsz, dsz); }
+        else { heat[idx] = h; if (nh < hotX.length) { hotX[nh] = hx; hotZ[nh] = hz; hotH[nh] = h; nh++; } }
+      }
+    }
+    for (var j = 0; j < nh; j++) {
+      var hh = hotH[j]; pr(hotX[j], hh * hh * 16, hotZ[j]);
+      var sz = (2 + hh * 3.5) * PS;
+      bctx.globalAlpha = Math.min(1, 0.3 + hh * 0.8);
+      bctx.fillStyle = hh > 0.5 ? cTrail : cAcc;
+      bctx.fillRect(PX - sz / 2, PY - sz / 2, sz, sz);
+    }
+    bctx.globalAlpha = 1;
+
+    drawCar();
+    pr(x, 9 * KS, z);
+    var carX = PX, carY = PY;
+
+    // cards light up under the car, letters hop as it passes (read first, then write)
+    if (frames % 2 === 0) {
+      var rects = spots.map(function (el) { return el.getBoundingClientRect(); });
+      var lr = letters.map(function (el) { return el.getBoundingClientRect(); });
+      spots.forEach(function (el, n) {
+        var rc = rects[n], inside = rc.width > 0 && carX >= rc.left && carX <= rc.right && carY >= rc.top && carY <= rc.bottom;
+        if (inside) { el.style.setProperty('--mx', (carX - rc.left) + 'px'); el.style.setProperty('--my', (carY - rc.top) + 'px'); }
+        el.classList.toggle('lit', inside);
+      });
+      letters.forEach(function (el, n) {
+        var rc = lr[n];
+        el.classList.toggle('pop', Math.hypot(carX - (rc.left + rc.width / 2), carY - (rc.top + rc.height / 2)) < 48);
+      });
+    }
+  }
+  requestAnimationFrame(step);
+
+  // input: cursor chases, WASD drives
+  function typing(t) { return t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable); }
+  function drive(k, on) {
+    keys[k] = on ? 1 : 0; lastKey = performance.now();
+    if (on) { mode = 'manual'; hud.classList.add('gone'); }
+  }
+  document.addEventListener('pointermove', function (e) {
+    if (e.pointerType === 'touch') return;
+    ptr.x = e.clientX; ptr.y = e.clientY; lastPtr = performance.now();
+    if (lastPtr - lastKey > 1500) mode = 'follow';
+  });
+  document.addEventListener('keyup', function (e) {
+    var k = e.key.toLowerCase();
+    if (keys.hasOwnProperty(k)) drive(k, false);
+  });
+  window.addEventListener('blur', function () { keys.w = keys.a = keys.s = keys.d = 0; });
+  [].forEach.call(document.querySelectorAll('#dpad button'), function (b) {
+    var k = b.getAttribute('data-k');
+    b.addEventListener('pointerdown', function (e) { e.preventDefault(); drive(k, true); });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { b.addEventListener(ev, function () { drive(k, false); }); });
+  });
+
+  // spotlight and tilt on pointer
+  var reduceTilt = reduce;
+  spots.forEach(function (el) {
+    el.addEventListener('pointermove', function (e) {
+      var r = el.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+      el.style.setProperty('--mx', px + 'px'); el.style.setProperty('--my', py + 'px');
+      if (el.classList.contains('tilt') && !reduceTilt) {
+        el.style.setProperty('--ry', ((px / r.width - 0.5) * 8).toFixed(2) + 'deg');
+        el.style.setProperty('--rx', ((0.5 - py / r.height) * 8).toFixed(2) + 'deg');
+      }
+    });
+    el.addEventListener('pointerleave', function () { el.style.setProperty('--rx', '0deg'); el.style.setProperty('--ry', '0deg'); });
+  });
+
+  // magnetic button
+  if (!reduce) [].forEach.call(document.querySelectorAll('.mag'), function (m) {
+    m.addEventListener('pointermove', function (e) {
+      var r = m.getBoundingClientRect();
+      m.style.transform = 'translate(' + ((e.clientX - r.left - r.width / 2) * 0.25) + 'px,' + ((e.clientY - r.top - r.height / 2) * 0.35) + 'px)';
+    });
+    m.addEventListener('pointerleave', function () { m.style.transform = ''; });
+  });
+
+  // project filter
+  var fb = document.querySelectorAll('.filters button'), cards = document.querySelectorAll('#grid .p');
+  [].forEach.call(fb, function (b) {
+    b.addEventListener('click', function () {
+      var f = b.getAttribute('data-f');
+      [].forEach.call(fb, function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); });
+      [].forEach.call(cards, function (c) { c.hidden = !(f === 'all' || c.getAttribute('data-t') === f); });
+      fitHeat();
+    });
+  });
+
+  // ---------- Photo carousel (photos added here are a preview in this browser only) ----------
+  var sc = $('slides'), cnt = $('cnt'), dotsEl = $('cdots'), N = 8, cur = 0, slides = [], dots = [];
+  var pad = function (n) { return ('0' + n).slice(-2); };
+  for (var s = 0; s < N; s++) {
+    (function (s) {
+      var fig = document.createElement('figure');
+      fig.className = 'slide'; fig.style.margin = '0';
+      fig.innerHTML = '<div class="ph" style="--r:' + (s * 47 % 360) + '"><span class="fn">IMG_' + ('000' + (s + 1)).slice(-4) + '.JPG</span>' +
+        '<label class="add">+ add photo<input type="file" accept="image/*" aria-label="Add photo ' + (s + 1) + '"></label></div>' +
+        '<figcaption>Frame ' + (s + 1) + ' of ' + N + '</figcaption>';
+      fig.querySelector('input').addEventListener('change', function (e) {
+        var f = e.target.files && e.target.files[0]; if (!f) return;
+        var rd = new FileReader();
+        rd.onload = function () {
+          var ph = fig.querySelector('.ph'), d = new Date(f.lastModified);
+          ph.style.backgroundImage = 'url(' + rd.result + ')'; ph.classList.add('has');
+          var st = ph.querySelector('.stamp') || document.createElement('span');
+          st.className = 'stamp'; st.textContent = "'" + pad(d.getFullYear() % 100) + ' ' + pad(d.getMonth() + 1) + ' ' + pad(d.getDate());
+          ph.appendChild(st);
+        };
+        rd.readAsDataURL(f);
+      });
+      sc.appendChild(fig); slides.push(fig);
+      var dot = document.createElement('button');
+      dot.type = 'button'; dot.setAttribute('aria-label', 'Go to photo ' + (s + 1));
+      dot.addEventListener('click', function () { go(s); });
+      dotsEl.appendChild(dot); dots.push(dot);
+    })(s);
+  }
+  function slideLeft(i) { var el = slides[i]; return el.offsetLeft - (sc.clientWidth - el.offsetWidth) / 2; }
+  function go(i) { cur = clamp(i, 0, N - 1); sc.scrollTo({ left: slideLeft(cur), behavior: reduce ? 'auto' : 'smooth' }); }
+  function mark() {
+    var best = 0, bd = 1e9;
+    for (var i = 0; i < N; i++) { var d = Math.abs(slideLeft(i) - sc.scrollLeft); if (d < bd) { bd = d; best = i; } }
+    cur = best;
+    slides.forEach(function (el, i) { el.classList.toggle('on', i === cur); });
+    dots.forEach(function (d, i) { d.setAttribute('aria-current', i === cur ? 'true' : 'false'); });
+    cnt.textContent = pad(cur + 1) + ' / ' + pad(N);
+  }
+  var ticking = false;
+  sc.addEventListener('scroll', function () { if (!ticking) { ticking = true; requestAnimationFrame(function () { ticking = false; mark(); }); } });
+  $('prev').addEventListener('click', function () { go(cur - 1); });
+  $('next').addEventListener('click', function () { go(cur + 1); });
+  sc.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight') { e.preventDefault(); go(cur + 1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); go(cur - 1); }
+  });
+  var drag = null;
+  sc.addEventListener('pointerdown', function (e) {
+    if (e.pointerType !== 'mouse' || e.button !== 0 || e.target.closest('.add')) return;
+    drag = { x: e.clientX, l: sc.scrollLeft };
+    sc.setPointerCapture(e.pointerId); sc.style.scrollSnapType = 'none'; sc.classList.add('drag');
+  });
+  sc.addEventListener('pointermove', function (e) { if (drag) sc.scrollLeft = drag.l - (e.clientX - drag.x); });
+  function endDrag() { if (!drag) return; drag = null; sc.style.scrollSnapType = ''; sc.classList.remove('drag'); go(cur); }
+  sc.addEventListener('pointerup', endDrag); sc.addEventListener('pointercancel', endDrag);
+  window.addEventListener('resize', function () { sc.scrollLeft = slideLeft(cur); mark(); });
+  sc.scrollLeft = slideLeft(0); mark();
+
+  // ---------- Command palette ----------
+  var q = $('pal-q'), list = $('pal-list');
+  var cmds = [
+    ['About', '#about'], ['Experience', '#experience'], ['Skills, the three Cs', '#skills'], ['Projects', '#projects'],
+    ['Photos', '#photos'], ['Jams and events', '#events'], ['Contact', '#contact'],
+    ['Toggle light or dark', 'theme'], ['Clear desire lines', 'clear']
+  ];
+  var sel = 0, shown = cmds;
+  function render() {
+    var t = q.value.toLowerCase();
+    shown = cmds.filter(function (c) { return c[0].toLowerCase().indexOf(t) > -1; });
+    if (sel >= shown.length) sel = 0;
+    list.innerHTML = '';
+    shown.forEach(function (c, i) {
+      var li = document.createElement('li'), b = document.createElement('button');
+      b.type = 'button'; b.setAttribute('aria-selected', i === sel ? 'true' : 'false');
+      b.innerHTML = '<span></span><small></small>';
+      b.firstChild.textContent = c[0]; b.lastChild.textContent = c[1].charAt(0) === '#' ? 'go' : 'action';
+      b.addEventListener('click', function () { run(c); });
+      li.appendChild(b); list.appendChild(li);
+    });
+  }
+  function run(c) {
+    close();
+    if (c[1] === 'theme') {
+      var dark = root.getAttribute('data-theme') === 'dark' || (!root.getAttribute('data-theme') && mq('(prefers-color-scheme: dark)'));
+      root.setAttribute('data-theme', dark ? 'light' : 'dark');
+    } else if (c[1] === 'clear') { trail.length = 0; last = null; heat.fill(0); }
+    else { var t = document.querySelector(c[1]); if (t) t.scrollIntoView(); }
+  }
+  function open() { keys.w = keys.a = keys.s = keys.d = 0; pal.hidden = false; q.value = ''; sel = 0; render(); q.focus(); }
+  function close() { pal.hidden = true; }
+  $('open-pal').addEventListener('click', open);
+  pal.addEventListener('click', function (e) { if (e.target === pal) close(); });
+  q.addEventListener('input', function () { sel = 0; render(); });
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); pal.hidden ? open() : close(); return; }
+    if (!pal.hidden) {
+      if (e.key === 'Escape') close();
+      else if (e.key === 'ArrowDown') { e.preventDefault(); sel = Math.min(shown.length - 1, sel + 1); render(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); sel = Math.max(0, sel - 1); render(); }
+      else if (e.key === 'Enter' && shown[sel]) { e.preventDefault(); run(shown[sel]); }
+      return;
+    }
+    if (e.ctrlKey || e.metaKey || e.altKey || typing(e.target)) return;
+    var k = e.key.toLowerCase();
+    if (keys.hasOwnProperty(k)) { e.preventDefault(); drive(k, true); }
+  });
+})();
+</script>
+
+</body></html>

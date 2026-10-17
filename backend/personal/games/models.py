@@ -194,3 +194,20 @@ class Note(models.Model):
         return f"Note by {self.sender or 'Anonymous'} at {self.created_at}"
 
 
+class GalleryPhoto(models.Model):
+    title = models.CharField(max_length=150, blank=True)
+    caption = models.CharField(max_length=250, blank=True)
+    image = models.ImageField(upload_to="images/gallery/%Y/%m/", null=True, blank=True)
+    image_url = models.URLField(max_length=500, blank=True, null=True, help_text="External or CDN URL if not uploaded directly")
+    tag = models.CharField(max_length=50, default="Life", blank=True, help_text="Tag like Volleyball, Coffee, City, Sunset")
+    date_taken = models.CharField(max_length=50, blank=True, null=True, help_text="Optional date stamp like '26 10 17'")
+    order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["order", "-created_at"]
+
+    def __str__(self):
+        return self.title or f"Photo #{self.id} ({self.tag})"
+
+
