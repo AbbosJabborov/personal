@@ -1,13 +1,37 @@
 import React, { useEffect, useRef } from "react";
+import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+
+const CAT_CONFIG = {
+  catScale: 75,
+  catElevation: 0,
+  catPivotX: 0,
+  catPivotZ: 0,
+  catRotYDeg: 0,
+  catPitchDeg: 0,
+  catRollDeg: 0,
+  pawSpread: 10,
+  pawForwardOffset: 0,
+  pawScale: 0.6,
+  pawRotDeg: 90,
+  pawSpacing: 35,
+  maxSpeed: 7.5,
+  accel: 0.15,
+  animSpeedMult: 0.7,
+  scrollSensitivity: 0.5,
+};
 
 export default function InteractiveCanvas({ onKeyDrive }) {
+  const containerRef = useRef(null);
   const fieldRef = useRef(null);
   const linesRef = useRef(null);
+  const threeCanvasRef = useRef(null);
 
   useEffect(() => {
     const back = fieldRef.current;
     const front = linesRef.current;
-    if (!back || !front) return;
+    const threeCanvas = threeCanvasRef.current;
+    if (!back || !front || !threeCanvas) return;
 
     const bctx = back.getContext("2d");
     const fctx = front.getContext("2d");
@@ -40,15 +64,77 @@ export default function InteractiveCanvas({ onKeyDrive }) {
     let GX = 0;
     let GZ = 0;
 
-    const LX = -0.46;
-    const LY = 0.82;
-    const LZ = 0.34;
-    const KS = 1.4;
-
     function fitHeat() {
       const rows = Math.ceil(Math.max(root.scrollHeight, H) / GAP) + RO + 40;
       if (rows * hc !== heat.length) heat = new Float32Array(rows * hc);
     }
+
+    // --- THREE.JS SETUP FOR TOON CAT ---
+    const scene = new THREE.Scene();
+    const threeCamera = new THREE.PerspectiveCamera(36.87, W / H, 10, 10000);
+    const renderer = new THREE.WebGLRenderer({
+      canvas: threeCanvas,
+      alpha: true,
+      antialias: true,
+    });
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    renderer.setSize(W, H);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    // Ambient & Directional Lights for Toon Cat
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffebd2, 1.8);
+    dirLight.position.set(100, 300, 200);
+    scene.add(dirLight);
+
+    const rimLight = new THREE.DirectionalLight(0x7ee6c1, 0.8);
+    rimLight.position.set(-150, 100, -100);
+    scene.add(rimLight);
+
+    let catModel = null;
+    let rawBox = null;
+    let rawSize = null;
+    let mixer = null;
+    let walkAction = null;
+    const catHolder = new THREE.Group();
+    scene.add(catHolder);
+
+    // Load Toon Cat Model
+    const loader = new GLTFLoader();
+    loader.load(
+      "/models/toon_cat_free.glb",
+      (gltf) => {
+        const cat = gltf.scene;
+
+        // Measure bounding box to normalize scale
+        rawBox = new THREE.Box3().setFromObject(cat);
+        rawSize = new THREE.Vector3();
+        rawBox.getSize(rawSize);
+
+        const initialScale = CAT_CONFIG.catScale / (rawSize.y || 1);
+        cat.scale.set(initialScale, initialScale, initialScale);
+        cat.position.y = -rawBox.min.y * initialScale + CAT_CONFIG.catElevation;
+        cat.position.z =
+          -((rawBox.min.z + rawBox.max.z) / 2) * initialScale + CAT_CONFIG.catPivotZ;
+        cat.position.x =
+          -((rawBox.min.x + rawBox.max.x) / 2) * initialScale + CAT_CONFIG.catPivotX;
+
+        catHolder.add(cat);
+        catModel = cat;
+
+        // Setup Animations
+        if (gltf.animations && gltf.animations.length > 0) {
+          mixer = new THREE.AnimationMixer(cat);
+          walkAction = mixer.clipAction(gltf.animations[0]);
+          walkAction.play();
+          walkAction.timeScale = 0; // Stand still initially
+        }
+      },
+      undefined,
+      (err) => console.warn("Toon cat model loading fallback:", err)
+    );
 
     function fit() {
       const d = Math.min(2, window.devicePixelRatio || 1);
@@ -60,10 +146,18 @@ export default function InteractiveCanvas({ onKeyDrive }) {
       });
       bctx.setTransform(d, 0, 0, d, 0, 0);
       fctx.setTransform(d, 0, 0, d, 0, 0);
+
       cols = Math.ceil(W / GAP);
       off = cols + 2;
       hc = cols * 3 + 6;
       FL = 1.5 * Math.max(H, 600);
+
+      // Match Three.js camera FOV with custom projection
+      threeCamera.fov = (2 * Math.atan((H / 2) / FL) * 180) / Math.PI;
+      threeCamera.aspect = W / H;
+      threeCamera.updateProjectionMatrix();
+      renderer.setSize(W, H);
+
       fitHeat();
     }
     fit();
@@ -73,6 +167,10 @@ export default function InteractiveCanvas({ onKeyDrive }) {
       CX = W / 2;
       CY = FL * CT;
       CZ = sy + H / 2 + FL * ST;
+
+      // Sync Three.js camera position and exact ground target
+      threeCamera.position.set(CX, CY, CZ);
+      threeCamera.lookAt(CX, 0, sy + H / 2);
     }
 
     function pr(wx, wy, wz) {
@@ -99,10 +197,10 @@ export default function InteractiveCanvas({ onKeyDrive }) {
 
     let prevSy = window.scrollY;
     camera(prevSy);
-    unproject(W * 0.7, H * 0.45);
+    unproject(W * 0.72, H * 0.42);
     let x = GX;
     let z = GZ;
-    let a = Math.PI;
+    let a = Math.PI / 2; // Initial heading pointing downward toward the content!
     let v = 0;
 
     // Keys state - driven ONLY by keyboard or dpad controls
@@ -114,164 +212,58 @@ export default function InteractiveCanvas({ onKeyDrive }) {
       }
     };
 
-    const trail = [];
-    let last = null;
-    const LIFE = 1800;
-    const MAXT = 120;
+    // Paw prints trail system
+    const paws = [];
+    let pawCount = 0;
+    let lastPawDist = 0;
+    let lastPawPos = { x, z };
+    const PAW_LIFE = 2400; // ms
+    const MAX_PAWS = 90;
+
+    let cTrail = "#7ee6c1";
     let cAcc = "#5b46d6";
-    let cTrail = "#0b8f6a";
-    let cMuted = "#5a5675";
-    let cBody = [212, 86, 15];
+    let cMuted = "#a29db8";
     let frames = 0;
     let prevT = performance.now();
-    let ccs = 1;
-    let csn = 0;
-
-    const GLASS = [38, 34, 64];
-    const TYRE = [26, 23, 38];
-
-    function rgb(c) {
-      const m = /^#([0-9a-f]{6})$/i.exec(c);
-      if (m)
-        return [
-          parseInt(m[1].slice(0, 2), 16),
-          parseInt(m[1].slice(2, 4), 16),
-          parseInt(m[1].slice(4, 6), 16),
-        ];
-      const ma = /rgba?\((\d+)[ ,]+(\d+)[ ,]+(\d+)/.exec(c);
-      return ma ? [+ma[1], +ma[2], +ma[3]] : [212, 86, 15];
-    }
-
-    function shade(c, f) {
-      return `rgb(${Math.round(Math.min(255, c[0] * f))},${Math.round(
-        Math.min(255, c[1] * f)
-      )},${Math.round(Math.min(255, c[2] * f))})`;
-    }
 
     function updateColors() {
       const st = getComputedStyle(root);
-      cAcc = st.getPropertyValue("--accent2").trim() || cAcc;
       cTrail = st.getPropertyValue("--trail").trim() || cTrail;
+      cAcc = st.getPropertyValue("--accent2").trim() || cAcc;
       cMuted = st.getPropertyValue("--muted").trim() || cMuted;
-      cBody = rgb(st.getPropertyValue("--accent").trim());
     }
     updateColors();
 
-    function drawBox(x0, x1, y0, y1, h0, h1, topC, sideC, emis) {
-      const F = [
-        [1, 0, 0, [[x1, y0, h0], [x1, y1, h0], [x1, y1, h1], [x1, y0, h1]]],
-        [-1, 0, 0, [[x0, y1, h0], [x0, y0, h0], [x0, y0, h1], [x0, y1, h1]]],
-        [0, 1, 0, [[x1, y1, h0], [x0, y1, h0], [x0, y1, h1], [x1, y1, h1]]],
-        [0, -1, 0, [[x0, y0, h0], [x1, y0, h0], [x1, y0, h1], [x0, y0, h1]]],
-        [0, 0, 1, [[x0, y0, h1], [x1, y0, h1], [x1, y1, h1], [x0, y1, h1]]],
-      ];
-      for (let i = 0; i < F.length; i++) {
-        const f = F[i];
-        const P = f[3];
-        const sxs = [];
-        const sys = [];
-        let mx = 0;
-        let my = 0;
-        let mz = 0;
-        for (let n = 0; n < 4; n++) {
-          const wx = x + (ccs * P[n][0] - csn * P[n][1]) * KS;
-          const wz = z + (csn * P[n][0] + ccs * P[n][1]) * KS;
-          const wy = P[n][2] * KS;
-          mx += wx;
-          my += wy;
-          mz += wz;
-          pr(wx, wy, wz);
-          sxs.push(PX);
-          sys.push(PY);
-        }
-        mx /= 4;
-        my /= 4;
-        mz /= 4;
-        const nx = ccs * f[0] - csn * f[1];
-        const nz = csn * f[0] + ccs * f[1];
-        const ny = f[2];
-        if (nx * (CX - mx) + ny * (CY - my) + nz * (CZ - mz) <= 0) continue;
-        if (emis) fctx.fillStyle = sideC;
-        else
-          fctx.fillStyle = shade(
-            f[2] ? topC : sideC,
-            (0.5 + 0.5 * Math.max(0, nx * LX + ny * LY + nz * LZ)) * 1.05
-          );
-        fctx.beginPath();
-        fctx.moveTo(sxs[0], sys[0]);
-        fctx.lineTo(sxs[1], sys[1]);
-        fctx.lineTo(sxs[2], sys[2]);
-        fctx.lineTo(sxs[3], sys[3]);
-        fctx.closePath();
-        fctx.fill();
-        fctx.stroke();
-      }
-    }
+    // Draw an authentic cat paw print (main pad + 4 toe beans)
+    function drawCatPaw(px, pz, angle, alpha, scaleFactor) {
+      fctx.save();
+      fctx.translate(px, pz);
+      fctx.rotate(angle);
+      fctx.scale(scaleFactor, scaleFactor);
 
-    function groundQuad(pts, dx, dz) {
+      fctx.fillStyle = cTrail;
+      fctx.globalAlpha = Math.max(0, Math.min(1, alpha * 0.85));
+
+      // 1. Main palm pad (rounded kidney/bean shape)
       fctx.beginPath();
-      for (let i = 0; i < pts.length; i++) {
-        pr(
-          x + (ccs * pts[i][0] - csn * pts[i][1]) * KS + dx,
-          0,
-          z + (csn * pts[i][0] + ccs * pts[i][1]) * KS + dz
-        );
-        if (i) fctx.lineTo(PX, PY);
-        else fctx.moveTo(PX, PY);
-      }
-      fctx.closePath();
+      fctx.ellipse(0, 1, 4.2, 3.2, 0, 0, Math.PI * 2);
       fctx.fill();
-    }
 
-    function drawCar() {
-      ccs = Math.cos(a);
-      csn = Math.sin(a);
-      fctx.globalAlpha = 1;
-      fctx.fillStyle = "rgba(255, 229, 138, 0.13)";
-      groundQuad([[23, -7], [23, 7], [115, 28], [115, -28]], 0, 0);
-      fctx.fillStyle = "rgba(0, 0, 0, 0.26)";
-      groundQuad([[-26, -14], [26, -14], [26, 14], [-26, 14]], 4, 5);
-      fctx.lineWidth = 1;
-      fctx.lineJoin = "round";
-      fctx.strokeStyle = "rgba(0, 0, 0, 0.35)";
-      pr(x, 8 * KS, z);
-      const dC = PD;
-      const near = [];
-      [[-14, -1], [-14, 1], [14, -1], [14, 1]].forEach((w) => {
-        const lx = w[0];
-        const ly = w[1] * 12.5;
-        pr(x + (ccs * lx - csn * ly) * KS, 4 * KS, z + (csn * lx + ccs * ly) * KS);
-        const box = [
-          lx - 5.5,
-          lx + 5.5,
-          w[1] > 0 ? 10 : -15,
-          w[1] > 0 ? 15 : -10,
-          0,
-          9,
-        ];
-        if (PD > dC)
-          drawBox(box[0], box[1], box[2], box[3], box[4], box[5], TYRE, TYRE, false);
-        else near.push(box);
+      // 2. Four little toe beans in a curve
+      const toes = [
+        { x: -4.0, y: -4.0, r: 1.4 },
+        { x: -1.5, y: -5.4, r: 1.5 },
+        { x: 1.5, y: -5.4, r: 1.5 },
+        { x: 4.0, y: -4.0, r: 1.4 },
+      ];
+
+      toes.forEach((t) => {
+        fctx.beginPath();
+        fctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
+        fctx.fill();
       });
-      drawBox(-22, 22, -11, 11, 4, 14, cBody, cBody, false);
-      drawBox(22, 23.5, -9, -4, 7, 11, null, "#ffe58a", true);
-      drawBox(22, 23.5, 4, 9, 7, 11, null, "#ffe58a", true);
-      drawBox(-23.5, -22, -9.5, -5, 7, 10, null, "#ff4b4b", true);
-      drawBox(-23.5, -22, 5, 9.5, 7, 10, null, "#ff4b4b", true);
-      drawBox(
-        -10,
-        10,
-        -8.5,
-        8.5,
-        14,
-        23,
-        [cBody[0] * 0.85, cBody[1] * 0.85, cBody[2] * 0.85],
-        GLASS,
-        false
-      );
-      near.forEach((b) => {
-        drawBox(b[0], b[1], b[2], b[3], b[4], b[5], TYRE, TYRE, false);
-      });
+
+      fctx.restore();
     }
 
     let animId = null;
@@ -287,48 +279,78 @@ export default function InteractiveCanvas({ onKeyDrive }) {
       z += sy - prevSy;
       prevSy = sy;
 
-      // MANUAL CAR CONTROL ONLY (No cursor chasing!)
+      // --- MANUAL MOVEMENT PHYSICS ---
       const thr = keys.w - keys.s;
       const steer = keys.d - keys.a;
-      if (thr > 0) v += 0.16 * k;
-      else if (thr < 0) v -= (v > 0 ? 0.3 : 0.1) * k;
-      else v *= Math.pow(0.97, k); // Smooth friction decay
 
-      v = Math.max(-2.8, Math.min(7.5, v));
-      a += steer * 0.05 * k * Math.max(-1, Math.min(1, v / 3));
+      const accel = CAT_CONFIG.accel;
+      const maxSpd = CAT_CONFIG.maxSpeed;
 
-      x += Math.cos(a) * v * k;
-      z += Math.sin(a) * v * k;
+      if (thr > 0) v += accel * k;
+      else if (thr < 0) v -= (v > 0 ? 0.32 : 0.12) * k;
+      else v *= Math.pow(0.965, k); // Smooth friction glide
 
-      // Driving near viewport edge smooth-scrolls page
-      if (Math.abs(v) > 0.3) {
-        const zone = Math.min(170, H * 0.28);
-        const b0 = window.scrollY;
-        const maxS = root.scrollHeight - H;
-        const vz = Math.sin(a) * v;
-        pr(x, 0, z);
-        const scy = PY;
-        const scl = PS;
-        if (vz > 0 && scy > H - zone && b0 < maxS - 1) {
-          window.scrollBy({
-            top: ((scy - (H - zone)) / scl) * 0.5,
-            left: 0,
-            behavior: "instant",
-          });
-        } else if (vz < 0 && scy < zone && b0 > 0) {
-          window.scrollBy({
-            top: ((scy - zone) / scl) * 0.5,
-            left: 0,
-            behavior: "instant",
-          });
+      v = Math.max(-maxSpd * 0.4, Math.min(maxSpd, v));
+      a += steer * 0.052 * k * Math.max(-1, Math.min(1, v / 2.8));
+
+      const dx = Math.cos(a) * v * k;
+      const dz = Math.sin(a) * v * k;
+      x += dx;
+      z += dz;
+
+      // --- ANIMATION SPEED MATCHING ---
+      const speed = Math.abs(v);
+      if (mixer) {
+        if (speed < 0.08) {
+          // Idle / Stand still
+          if (walkAction) walkAction.timeScale = 0;
+        } else {
+          // Dynamic gait: slow walk -> fast trot
+          const playRate = Math.min(
+            3.2,
+            Math.max(0.4, speed * 0.42 * CAT_CONFIG.animSpeedMult)
+          );
+          if (walkAction) {
+            walkAction.timeScale = playRate;
+            mixer.update((dt / 1000) * playRate);
+          }
         }
-        sy = window.scrollY;
-        prevSy = sy;
-        camera(sy);
       }
 
-      // Keep car on screen margins
-      const mg = 16;
+      // --- SMOOTH PAGE SCROLLING WITH THE CAT ---
+      pr(x, 0, z);
+      const catScreenY = PY;
+      const vz = Math.sin(a) * v; // Downward movement velocity
+
+      if (speed > 0.2) {
+        const currentScroll = window.scrollY;
+        const maxScroll = Math.max(0, root.scrollHeight - H);
+        const bottomZone = H * 0.64;
+        const topZone = H * 0.34;
+        const scrollSens = CAT_CONFIG.scrollSensitivity;
+
+        // Walking DOWN -> Scroll page down
+        if (vz > 0.1 && catScreenY > bottomZone && currentScroll < maxScroll - 2) {
+          const ratio = Math.min(1, (catScreenY - bottomZone) / (H - bottomZone));
+          const scrollStep = (vz * 1.5 + ratio * 5.5) * k * scrollSens;
+          window.scrollBy({ top: scrollStep, left: 0, behavior: "instant" });
+          sy = window.scrollY;
+          prevSy = sy;
+          camera(sy);
+        }
+        // Walking UP -> Scroll page up
+        else if (vz < -0.1 && catScreenY < topZone && currentScroll > 2) {
+          const ratio = Math.min(1, (topZone - catScreenY) / topZone);
+          const scrollStep = (vz * 1.5 - ratio * 5.5) * k * scrollSens;
+          window.scrollBy({ top: scrollStep, left: 0, behavior: "instant" });
+          sy = window.scrollY;
+          prevSy = sy;
+          camera(sy);
+        }
+      }
+
+      // Keep cat comfortably on screen
+      const mg = 24;
       unproject(W / 2, mg);
       const zt = GZ;
       unproject(W / 2, H - mg);
@@ -340,78 +362,65 @@ export default function InteractiveCanvas({ onKeyDrive }) {
       x = nx;
       z = nz;
 
-      // Desire lines
-      const cs = Math.cos(a);
-      const sn = Math.sin(a);
-      if (Math.abs(v) > 0.4) {
-        if (!last || Math.hypot(x - last.x, z - last.z) > 4) {
-          trail.push({
-            t: ts,
-            cx: x - cs * 14 * KS,
-            cz: z - sn * 14 * KS,
-            lx: x - (cs * 14 - sn * 12.5) * KS,
-            lz: z - (sn * 14 + cs * 12.5) * KS,
-            rx: x - (cs * 14 + sn * 12.5) * KS,
-            rz: z - (sn * 14 - cs * 12.5) * KS,
-            s: !last,
-          });
-          last = { x, z };
-        }
-      } else {
-        last = null;
+      // Position Three.js 3D Cat Holder & apply rotations
+      catHolder.position.set(x, 0, z);
+      const rotY = Math.PI / 2 - a + ((CAT_CONFIG.catRotYDeg * Math.PI) / 180);
+      const pitch = (CAT_CONFIG.catPitchDeg * Math.PI) / 180;
+      const roll = (CAT_CONFIG.catRollDeg * Math.PI) / 180;
+      catHolder.rotation.set(pitch, rotY, roll);
+
+      // Render Three.js Cat Model
+      renderer.render(scene, threeCamera);
+
+      // --- CAT PAW PRINTS TRAILS ---
+      lastPawDist += Math.hypot(x - lastPawPos.x, z - lastPawPos.z);
+      if (speed > 0.3 && lastPawDist > CAT_CONFIG.pawSpacing) {
+        lastPawDist = 0;
+        lastPawPos = { x, z };
+        pawCount++;
+        const side = pawCount % 2 === 0 ? 1 : -1;
+
+        const forwardX = Math.cos(a) * CAT_CONFIG.pawForwardOffset;
+        const forwardZ = Math.sin(a) * CAT_CONFIG.pawForwardOffset;
+        const spreadX = -Math.sin(a) * side * CAT_CONFIG.pawSpread;
+        const spreadZ = Math.cos(a) * side * CAT_CONFIG.pawSpread;
+
+        paws.push({
+          t: ts,
+          wx: x + spreadX + forwardX,
+          wz: z + spreadZ + forwardZ,
+          angle: a + ((CAT_CONFIG.pawRotDeg * Math.PI) / 180),
+          scale: CAT_CONFIG.pawScale,
+        });
       }
-      while (trail.length && ts - trail[0].t > LIFE) trail.shift();
-      if (trail.length > MAXT) trail.splice(0, trail.length - MAXT);
+
+      while (paws.length && ts - paws[0].t > PAW_LIFE) paws.shift();
+      if (paws.length > MAX_PAWS) paws.splice(0, paws.length - MAX_PAWS);
 
       fctx.clearRect(0, 0, W, H);
-      fctx.lineCap = "round";
-      fctx.strokeStyle = cTrail;
-      for (let i = 1; i < trail.length; i++) {
-        const p = trail[i];
-        const q = trail[i - 1];
-        if (p.s) continue;
-        const al = 1 - (ts - p.t) / LIFE;
-        pr(q.cx, 0, q.cz);
-        const ax = PX;
-        const ay = PY;
-        pr(p.cx, 0, p.cz);
-        const bx = PX;
-        const by = PY;
-        const ps = PS;
-        if ((ay < -30 && by < -30) || (ay > H + 30 && by > H + 30)) continue;
-        fctx.globalAlpha = 0.14 * al;
-        fctx.lineWidth = 24 * ps;
-        fctx.beginPath();
-        fctx.moveTo(ax, ay);
-        fctx.lineTo(bx, by);
-        fctx.stroke();
-        fctx.globalAlpha = 0.75 * al;
-        fctx.lineWidth = 2.4 * ps;
-        fctx.beginPath();
-        pr(q.lx, 0, q.lz);
-        fctx.moveTo(PX, PY);
-        pr(p.lx, 0, p.lz);
-        fctx.lineTo(PX, PY);
-        pr(q.rx, 0, q.rz);
-        fctx.moveTo(PX, PY);
-        pr(p.rx, 0, p.rz);
-        fctx.lineTo(PX, PY);
-        fctx.stroke();
+      for (let i = 0; i < paws.length; i++) {
+        const p = paws[i];
+        const age = ts - p.t;
+        const alpha = 1 - age / PAW_LIFE;
+        pr(p.wx, 0, p.wz);
+        if (PY >= -20 && PY <= H + 20 && PX >= -20 && PX <= W + 20) {
+          drawCatPaw(PX, PY, p.angle, alpha, PS * (p.scale || 1.0));
+        }
       }
-      fctx.globalAlpha = 1;
 
-      // Ground dot field
+      // --- GROUND DOT MATRIX FIELD ---
       bctx.clearRect(0, 0, W, H);
       unproject(W / 2, -40);
       const zTop = GZ;
       unproject(W / 2, H + 40);
       const zBot = GZ;
-      const R = 90 + Math.abs(v) * 9;
+      const R = 85 + speed * 8;
       const R2 = R * R;
       let nh = 0;
       const r0 = Math.max(-RO, Math.floor(zTop / GAP) - 1);
       const r1 = Math.ceil(zBot / GAP) + 1;
       bctx.fillStyle = cMuted;
+
       for (let r = r0; r <= r1; r++) {
         const gz = r * GAP;
         const rvz = gz - CZ;
@@ -429,6 +438,7 @@ export default function InteractiveCanvas({ onKeyDrive }) {
         );
         bctx.globalAlpha = 0.3 * Math.max(0.35, Math.min(1.2, rs));
         const dsz = Math.max(1.4, 2 * rs);
+
         for (let c = c0; c <= c1; c++) {
           const gx = (c - off) * GAP;
           const idx = base + c;
@@ -438,14 +448,16 @@ export default function InteractiveCanvas({ onKeyDrive }) {
           const d2 = ddx * ddx + ddz * ddz;
           let hx = gx;
           let hz = gz;
+
           if (d2 < R2) {
             const dd = Math.sqrt(d2) || 1;
             const f = 1 - dd / R;
             if (f > h) h = f;
-            const push = f * f * 16;
+            const push = f * f * 14;
             hx += (ddx / dd) * push;
             hz += (ddz / dd) * push;
           }
+
           if (h < 0.03) {
             heat[idx] = 0;
             bctx.fillRect(
@@ -465,9 +477,10 @@ export default function InteractiveCanvas({ onKeyDrive }) {
           }
         }
       }
+
       for (let j = 0; j < nh; j++) {
         const hh = hotH[j];
-        pr(hotX[j], hh * hh * 16, hotZ[j]);
+        pr(hotX[j], hh * hh * 14, hotZ[j]);
         const sz = (2 + hh * 3.5) * PS;
         bctx.globalAlpha = Math.min(1, 0.3 + hh * 0.8);
         bctx.fillStyle = hh > 0.5 ? cTrail : cAcc;
@@ -475,12 +488,11 @@ export default function InteractiveCanvas({ onKeyDrive }) {
       }
       bctx.globalAlpha = 1;
 
-      drawCar();
-      pr(x, 9 * KS, z);
-      const carX = PX;
-      const carY = PY;
+      // Cards light up & letters hop when cat passes
+      pr(x, 18, z);
+      const catPx = PX;
+      const catPy = PY;
 
-      // Cards light up and letters hop when car passes
       if (frames % 2 === 0) {
         const spots = document.querySelectorAll(".spot");
         const letters = document.querySelectorAll(".ch");
@@ -489,13 +501,13 @@ export default function InteractiveCanvas({ onKeyDrive }) {
           const rc = el.getBoundingClientRect();
           const inside =
             rc.width > 0 &&
-            carX >= rc.left &&
-            carX <= rc.right &&
-            carY >= rc.top &&
-            carY <= rc.bottom;
+            catPx >= rc.left &&
+            catPx <= rc.right &&
+            catPy >= rc.top &&
+            catPy <= rc.bottom;
           if (inside) {
-            el.style.setProperty("--mx", `${carX - rc.left}px`);
-            el.style.setProperty("--my", `${carY - rc.top}px`);
+            el.style.setProperty("--mx", `${catPx - rc.left}px`);
+            el.style.setProperty("--my", `${catPy - rc.top}px`);
           }
           el.classList.toggle("lit", inside);
         });
@@ -503,16 +515,16 @@ export default function InteractiveCanvas({ onKeyDrive }) {
         letters.forEach((el) => {
           const rc = el.getBoundingClientRect();
           const dist = Math.hypot(
-            carX - (rc.left + rc.width / 2),
-            carY - (rc.top + rc.height / 2)
+            catPx - (rc.left + rc.width / 2),
+            catPy - (rc.top + rc.height / 2)
           );
-          el.classList.toggle("pop", dist < 48);
+          el.classList.toggle("pop", dist < 52);
         });
       }
     }
     animId = requestAnimationFrame(step);
 
-    // Keyboard controls
+    // Keyboard handlers
     function isTyping(t) {
       return (
         t &&
@@ -566,13 +578,20 @@ export default function InteractiveCanvas({ onKeyDrive }) {
       window.removeEventListener("keyup", handleKeyUp);
       window.removeEventListener("blur", handleBlur);
       delete window.__driveCar;
+      renderer.dispose();
     };
   }, [onKeyDrive]);
 
   return (
-    <>
+    <div ref={containerRef}>
+      {/* Background ground dot field */}
       <canvas id="field" ref={fieldRef} aria-hidden="true" />
+
+      {/* Cat paw print trails */}
       <canvas id="lines" ref={linesRef} aria-hidden="true" />
-    </>
+
+      {/* 3D Toon Cat WebGL Canvas */}
+      <canvas id="cat-canvas" ref={threeCanvasRef} aria-hidden="true" />
+    </div>
   );
 }

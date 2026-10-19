@@ -47,7 +47,7 @@ export default function CarHUD({ isDriving }) {
           <kbd>S</kbd>
           <kbd>D</kbd>
         </span>
-        <span>drive car</span>
+        <span>guide cat · walking down scrolls</span>
         <button
           type="button"
           className="hud-close"

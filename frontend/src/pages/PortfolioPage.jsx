@@ -34,25 +34,9 @@ export default function PortfolioPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const marqueeWords = [
-    "Unity 6",
-    "C#",
-    "Gameplay Systems",
-    "Shaders & HLSL",
-    "Game Design",
-    "Cinemachine",
-    "Django REST",
-    "React",
-    "Docker",
-    "Git",
-    "Game Jams",
-    "Volleyball",
-    "Photography",
-  ];
-
   return (
     <div className="portfolio-container">
-      {/* 3D Box Car & Interactive Ground Dot Field */}
+      {/* 3D Box Car / Toon Cat & Interactive Ground Dot Field */}
       <InteractiveCanvas onKeyDrive={() => setHasDriven(true)} />
 
       {/* Right-Side Entrance HUD (fades after start / upon driving) */}
@@ -150,15 +134,6 @@ export default function PortfolioPage() {
             </a>
           </div>
         </section>
-
-        {/* Infinite Keywords Marquee */}
-        <div className="marquee" aria-hidden="true">
-          <div className="track">
-            {marqueeWords.concat(marqueeWords).map((word, i) => (
-              <span key={i}>{word}</span>
-            ))}
-          </div>
-        </div>
 
         {/* About Section */}
         <section id="about">
