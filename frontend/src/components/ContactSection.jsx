@@ -1,5 +1,5 @@
 import React from "react";
-import { Mail } from "lucide-react";
+import { Mail, FileText } from "lucide-react";
 
 export default function ContactSection() {
   return (
@@ -7,8 +7,8 @@ export default function ContactSection() {
       <span className="label">Get in Touch</span>
       <h2>Let's make something that feels good to play.</h2>
       <p style={{ color: "var(--muted)", margin: 0, fontSize: "17px" }}>
-        Based in Tashkent, Uzbekistan. Open to gameplay engineering, 3D graphics,
-        and systems collaborations.
+        Based in Budapest, Hungary. Open to gameplay engineering, 3D graphics,
+        and core systems collaborations.
       </p>
 
       <div className="contact-actions">
@@ -22,9 +22,22 @@ export default function ContactSection() {
           <span>Email me (abbosjabborov12@gmail.com)</span>
         </a>
 
+        {/* Download CV */}
+        <a
+          href="/Abbos_Jabborov_CV.pdf"
+          download="Abbos_Jabborov_CV.pdf"
+          target="_blank"
+          rel="noreferrer"
+          className="social-link-btn"
+          aria-label="Download Abbos Jabborov CV (PDF)"
+        >
+          <FileText size={18} />
+          <span>Download CV</span>
+        </a>
+
         {/* GitHub Link */}
         <a
-          href="https://github.com"
+          href="https://github.com/AbbosJabborov"
           target="_blank"
           rel="noreferrer"
           className="social-link-btn"
@@ -44,7 +57,7 @@ export default function ContactSection() {
 
         {/* LinkedIn Link */}
         <a
-          href="https://linkedin.com"
+          href="https://linkedin.com/in/abbos-jabborov-328a53220"
           target="_blank"
           rel="noreferrer"
           className="social-link-btn"

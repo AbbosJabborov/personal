@@ -107,7 +107,7 @@ export default function PortfolioPage() {
             ))}
           </h1>
 
-          <p className="role">Unity developer and 3C game designer</p>
+          <p className="role">Gameplay Engineer | Core Gameplay Designer</p>
 
           <div className="actions-row">
             <a className="mag" href="#projects">
@@ -116,7 +116,16 @@ export default function PortfolioPage() {
             </a>
 
             <a
-              href="https://github.com"
+              href="/Abbos_Jabborov_CV.pdf"
+              target="_blank"
+              rel="noreferrer"
+              className="social-pill"
+            >
+              CV ↗
+            </a>
+
+            <a
+              href="https://github.com/AbbosJabborov"
               target="_blank"
               rel="noreferrer"
               className="social-pill"
@@ -125,7 +134,7 @@ export default function PortfolioPage() {
             </a>
 
             <a
-              href="https://linkedin.com"
+              href="https://linkedin.com/in/abbos-jabborov-328a53220"
               target="_blank"
               rel="noreferrer"
               className="social-pill"
@@ -144,14 +153,16 @@ export default function PortfolioPage() {
 
           <div className="about-card spot">
             <p>
-              I work across gameplay programming, game design, and the technical side
-              of indie game production. Most days that means writing responsive movement
-              and vehicle mechanics in Unity, then tuning the feel until every input gives
-              back satisfying momentum.
+              I am a Unity gameplay engineer and 3C designer based in Budapest, Hungary,
+              studying Computer Science Engineering at Óbuda University. As co-founder of
+              Tonto Studio, I lead the development of <em>Desire Lines</em>, a PSX-style
+              driving roguelite heading to Steam with 1,000+ wishlists. My daily work
+              focuses on responsive C# mechanics, procedural run generation, and tight
+              player feedback loops.
             </p>
             <p className="highlight">
               I appreciate cozy, warm, and minimal design, and I lean on custom shaders
-              to give projects a distinct aesthetic—retro outlines, vertex CRT warps,
+              to give projects a distinct aesthetic—retro outlines, vertex warps,
               and tactile post-processing. When stepping away from the screen, you can
               find me playing volleyball, hunting down good espresso, or snapping quiet
               city frames.

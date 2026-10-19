@@ -3,30 +3,47 @@ import React, { useState } from "react";
 const WORK_EXPERIENCES = [
   {
     id: "tonto",
-    role: "Co-founder, Gameplay Programmer & Designer",
+    role: "Co-founder & Lead Developer",
     company: "Tonto Studio",
-    location: "Tashkent, Uzbekistan",
-    period: "2025 – Present",
-    status: "Active Studio",
+    location: "Remote (Part-time)",
+    period: "Jun 2025 – Present",
     highlights: [
-      "Desire Lines — Leading gameplay programming for the studio's primary PC release heading to Steam.",
-      "Unity 6 Systems & Physics — Built realistic arcade vehicle physics, custom suspension raycasts, and modular movement systems.",
-      "Custom Shaders — Wrote HLSL/Shader Graph pipelines for PSX/retro aesthetics, procedural vertex wobble, and dynamic outlines.",
-      "Game Design & Ideation — Led design sprints on co-op puzzle mechanics, tactile camera systems, and player feedback loops.",
-      "Studio Operations — Architected studio web platforms and prepared IT Park Uzbekistan residency application materials.",
+      "Architected Desire Lines, a PSX-style driving roguelite, from concept to a live Steam page with 1000+ wishlists.",
+      "Built procedural map generation for each run, inspired by the dungeon generation in The Binding of Isaac.",
+      "Lead a 5-person team toward a demo release scheduled for Q4 2026; own code reviews, design discussions, and task management.",
     ],
   },
   {
-    id: "freelance-systems",
-    role: "Independent Gameplay & Web Systems Developer",
-    company: "Self-Employed / Open Source",
-    location: "Remote",
-    period: "2024 – Present",
-    status: "Ongoing",
+    id: "hexforge",
+    role: "UI/UX Designer",
+    company: "HexForge",
+    location: "Remote (Contract)",
+    period: "Oct 2025 – Jan 2026",
     highlights: [
-      "Engineered full-stack interactive web experiences combining React, Three.js, and Django REST Framework.",
-      "Authored custom WebGL/Canvas visualizers and real-time multiplayer duel prototypes.",
-      "Maintains open-source game tools, shader snippets, and responsive developer utilities.",
+      "Redesigned and implemented the UI system across 2 existing projects, replacing Unity's default debug UI with handmade designs that match each game's atmosphere.",
+      "Fixed critical bugs and performance bottlenecks by reducing draw calls and optimizing CPU time with improved core system logic.",
+    ],
+  },
+  {
+    id: "tryvox",
+    role: "Gameplay Engineer",
+    company: "TryVox Studio",
+    location: "On-site (Full-time)",
+    period: "Jun 2025 – Aug 2025",
+    highlights: [
+      "Built the whole interaction and movement system for Don't Touch My Dacha, a culturally themed simulator, in an 8-person team.",
+      "Delivered core gameplay mechanics for the official trailer release.",
+    ],
+  },
+  {
+    id: "itic",
+    role: "Unity Developer",
+    company: "ITIC Games",
+    location: "On-site (Full-time)",
+    period: "Dec 2024 – Jun 2025",
+    highlights: [
+      "Built 6 hypercasual mobile prototypes and independently shipped 2 to the Play Store (1k+ downloads).",
+      "Took part in code reviews and technical architecture discussions with senior developers.",
     ],
   },
 ];
@@ -34,48 +51,44 @@ const WORK_EXPERIENCES = [
 const COMPETITIONS = [
   {
     id: "gamefest-2026",
-    title: "Best Game Design Nomination",
-    event: "Gamefest 26",
-    team: "Team All Hail Uncle Bao",
-    period: "February 2026",
-    badge: "Top 3 Finalist",
+    title: "Best Game Design",
+    event: "GameFest 2026",
+    period: "2026",
+    badge: "Winner",
     badgeType: "accent",
     description:
-      "48-hour game jam prototype centered on synchronous echoes and temporal rewind mechanics.",
+      "Awarded Best Game Design at GameFest 2026 among competitive indie teams.",
     details: [
-      "Designed and coded core character movement and time-rewind ghost recording loops at 60Hz.",
-      "Authored custom dissolve and retro post-processing shaders that caught the judges' attention.",
-      "Earned an official nomination for Best Game Design among 150+ competitors.",
+      "Engineered core gameplay mechanics, responsive 3C controls, and player feedback loops under strict game jam constraints.",
+      "Recognized with 1st place Best Game Design honor.",
     ],
   },
   {
-    id: "jam-35lvl",
-    title: "Independence Mechanic Jam",
-    event: "35 LVL Jam",
-    team: "Two-Person Duo",
-    period: "January 2026",
-    badge: "Completed",
-    badgeType: "trail",
+    id: "gamefest-2025",
+    title: "2nd Place",
+    event: "GameFest 2025",
+    period: "2025",
+    badge: "2nd Place",
+    badgeType: "accent",
     description:
-      "Rapid three-day indie game sprint focusing on inventive mechanics without relying on external art assets.",
+      "Awarded 2nd place overall at GameFest 2025.",
     details: [
-      "Acted as primary gameplay programmer, implementing custom shaders to carry the entire visual look.",
-      "Engineered responsive controls and level pacing within a strict 72-hour timeframe.",
+      "Rapidly prototyped and delivered a complete playable build emphasizing tactile feel and custom shaders.",
+      "Part of 3 competition awards totaling $3,730 in prizes.",
     ],
   },
   {
-    id: "ai-xakaton",
-    title: "Umummilliy AI Xakaton — Qashqadaryo",
+    id: "ai-hackathon",
+    title: "2nd Place",
     event: "National AI Hackathon",
-    team: "Team of 5 Engineers",
     period: "2026",
-    badge: "Hackathon",
+    badge: "2nd Place",
     badgeType: "trail",
     description:
-      "State-wide hackathon challenge focusing on AI-assisted anomaly detection in economic transactions.",
+      "2nd place at the National AI Hackathon for Shadow Economy Radar (shadow.claive.uz).",
     details: [
-      "Built the Shadow Economy Radar frontend dashboard and integrated real-time anomaly flagging endpoints.",
-      "Collaborated closely with data scientists to turn complex ML model outputs into intuitive visual alerts.",
+      "Built the full interactive frontend dashboard and integrated real-time anomaly detection alerts.",
+      "Collaborated closely with data scientists to turn complex ML model outputs into intuitive visual workflows.",
     ],
   },
 ];
@@ -182,7 +195,7 @@ export default function ExperienceDropdown() {
                       </span>
                     </h3>
                     <div className="exp-org">
-                      {ev.event} · {ev.team} · {ev.period}
+                      {[ev.event, ev.team, ev.period].filter(Boolean).join(" · ")}
                     </div>
                   </div>
                   <span className="exp-chevron">▾</span>

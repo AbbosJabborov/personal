@@ -11,6 +11,7 @@ export default function CommandPalette({ isOpen, onClose, onToggleTheme }) {
     { label: "Technical Toolbox", target: "#toolbox", type: "jump" },
     { label: "Selected Work & Projects", target: "#projects", type: "jump" },
     { label: "Off Duty Photo Gallery", target: "#photos", type: "jump" },
+    { label: "Download CV / Resume (PDF)", target: "/Abbos_Jabborov_CV.pdf", type: "link" },
     { label: "Contact & Email", target: "#contact", type: "jump" },
     { label: "Toggle Light / Dark Theme", target: "theme", type: "action" },
   ];
@@ -29,7 +30,9 @@ export default function CommandPalette({ isOpen, onClose, onToggleTheme }) {
 
   const executeCommand = (cmd) => {
     onClose();
-    if (cmd.target === "theme") {
+    if (cmd.type === "link") {
+      window.open(cmd.target, "_blank");
+    } else if (cmd.target === "theme") {
       onToggleTheme();
     } else {
       const el = document.querySelector(cmd.target);
